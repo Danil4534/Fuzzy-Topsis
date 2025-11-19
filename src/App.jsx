@@ -26,7 +26,6 @@ function triDistance(a, b) {
   return Math.sqrt((dl * dl + dm * dm + du * du) / 3);
 }
 
-
 function make3d(experts, criteria, alternatives, fill = "F") {
   const res = [];
   for (let e = 0; e < experts; e++) {
@@ -46,7 +45,46 @@ export default function App() {
   const [numAlternatives, setNumAlternatives] = useState(4);
   const [criteriaNames, setCriteriaNames] = useState(
     Array.from({ length: 5 }, (_, i) => `C${i + 1}`)
-  );
+  ); function loadSample() {
+    const sampleExperts = 3;
+    const sampleCriteria = 5;
+    const sampleAlternatives = 4;
+
+    setNumExperts(sampleExperts);
+    setNumCriteria(sampleCriteria);
+    setNumAlternatives(sampleAlternatives);
+
+    setCriteriaNames(["C1", "C2", "C3", "C4", "C5"]);
+    setAlternativeNames(["A1", "A2", "A3", "A4"]);
+
+    setCriteriaWeights([
+      ["F", "G", "P", "F", "G"],
+      ["G", "VG", "F", "P", "G"],
+      ["P", "F", "G", "G", "VG"],
+    ]);
+
+    setAlternativesAssessments([
+      [
+        ["G", "F", "F", "G", "VG"],
+        ["F", "P", "G", "G", "G"],
+        ["G", "G", "VG", "F", "P"],
+        ["P", "F", "F", "G", "G"],
+      ],
+      [
+        ["VG", "G", "F", "G", "G"],
+        ["G", "F", "P", "F", "VG"],
+        ["F", "G", "G", "VG", "G"],
+        ["G", "P", "F", "F", "F"],
+      ],
+      [
+        ["F", "G", "VG", "G", "F"],
+        ["G", "VG", "G", "P", "G"],
+        ["F", "G", "G", "F", "VG"],
+        ["VG", "G", "F", "F", "G"],
+      ],
+    ]);
+  }
+
   const [alternativeNames, setAlternativeNames] = useState(
     Array.from({ length: 4 }, (_, i) => `A${i + 1}`)
   );
@@ -285,6 +323,12 @@ export default function App() {
           />
         </div>
       </div>
+      <button
+        onClick={loadSample}
+        className="px-4 py-2 mb-6 bg-blue-600 text-black rounded shadow hover:bg-blue-700 transition"
+      >
+        Load Sample
+      </button>
       <div className="mb-6">
         <div className="space-y-6">
           <div className="p-4 border rounded">
@@ -602,7 +646,7 @@ export default function App() {
                     <th className="p-2 border bg-slate-50 text-center">Критерій</th>
                     {alternativeNames.map((alt, a) => (
                       <th key={a} className="p-2 border bg-slate-100 text-center">
-                        {alt || `A${a + 1} `} {`wn ai${a + 1}`}
+                        {alt || `A${a + 1}`} {`wn ai${a + 1}`}
                       </th>
                     ))}
                   </tr>
@@ -614,17 +658,10 @@ export default function App() {
                     let sumLw = 0, sumMw = 0, sumUw = 0;
                     for (let e = 0; e < numExperts; e++) {
                       const tri = results?.criteriaTri?.[e]?.[j] || [0, 0, 0];
-                      sumLw += tri[0];
-                      sumMw += tri[1];
-                      sumUw += tri[2];
+                      sumLw += tri[0]; sumMw += tri[1]; sumUw += tri[2];
                     }
                     const divisor = Math.max(1, criteriaNames.length - 1);
-                    const weightTri = [
-                      sumLw / divisor,
-                      sumMw / divisor,
-                      sumUw / divisor,
-                    ];
-
+                    const weightTri = [sumLw / divisor, sumMw / divisor, sumUw / divisor];
 
                     let maxU = 0;
                     for (let a = 0; a < alternativeNames.length; a++) {
@@ -641,35 +678,36 @@ export default function App() {
                       <tr key={j}>
                         <td className="p-2 border font-medium text-center">{crit || `C${j + 1}`}</td>
 
-                        {/* 3️⃣ Перемножаємо нормалізовані числа на вагу критерію */}
                         {alternativeNames.map((_, a) => {
+
                           let sumL = 0, sumM = 0, sumU = 0;
                           for (let e = 0; e < numExperts; e++) {
                             const tri = results?.altTri?.[e]?.[a]?.[j] || [0, 0, 0];
-                            sumL += tri[0];
-                            sumM += tri[1];
-                            sumU += tri[2];
+                            sumL += tri[0]; sumM += tri[1]; sumU += tri[2];
                           }
 
                           const avgTri = [
                             sumL / Math.max(1, numExperts),
                             sumM / Math.max(1, numExperts),
-                            sumU / Math.max(1, numExperts),
+                            sumU / Math.max(1, numExperts)
                           ];
 
+
                           const normTri = maxU > 0
-                            ? [
-                              avgTri[0] / maxU,
-                              avgTri[1] / maxU,
-                              avgTri[2] / maxU,
-                            ]
+                            ? [avgTri[0] / maxU, avgTri[1] / maxU, avgTri[2] / maxU]
                             : [0, 0, 0];
+
 
                           const weightedTri = [
                             normTri[0] * weightTri[0],
                             normTri[1] * weightTri[1],
-                            normTri[2] * weightTri[2],
+                            normTri[2] * weightTri[2]
                           ];
+
+
+                          results.weightedNormalized = results.weightedNormalized || [];
+                          results.weightedNormalized[a] = results.weightedNormalized[a] || [];
+                          results.weightedNormalized[a][j] = weightedTri;
 
                           return (
                             <td key={`weighted-${j}-${a}`} className="p-2 border text-center font-mono text-xs">
@@ -688,7 +726,7 @@ export default function App() {
           <div className="p-4 border rounded mt-6">
             <h3 className="font-semibold mb-2">FPIS та FNIS</h3>
             <p className="text-sm text-slate-500 mb-3">
-              Таблиця відображає максимальні (FPIS) та мінімальні (FNIS) значення по всіх альтернативах для кожного критерію, обчислені на основі зважених нормалізованих тріангулярних чисел.
+              Таблиця відображає максимальне (FPIS) та мінімальне (FNIS) значення по всіх альтернативах для кожного критерію.
             </p>
 
             <div className="overflow-x-auto">
@@ -703,63 +741,22 @@ export default function App() {
 
                 <tbody>
                   {criteriaNames.map((crit, j) => {
-                    let fpis = Number.NEGATIVE_INFINITY;
-                    let fnis = Number.POSITIVE_INFINITY;
+                    let fpis = -Infinity;
+                    let fnis = Infinity;
 
                     alternativeNames.forEach((_, a) => {
-                      let sumL = 0, sumM = 0, sumU = 0;
+                      const tri = results.weightedNormalized?.[a]?.[j] || [0, 0, 0];
+                      const [L, M, U] = tri;
 
-                      for (let e = 0; e < numExperts; e++) {
-                        const tri = results?.altTri?.[e]?.[a]?.[j] || [0, 0, 0];
-                        sumL += tri[0];
-                        sumM += tri[1];
-                        sumU += tri[2];
-                      }
-
-                      const avgTri = [
-                        sumL / Math.max(1, numExperts),
-                        sumM / Math.max(1, numExperts),
-                        sumU / Math.max(1, numExperts),
-                      ];
-
-
-                      let maxU = 0;
-                      for (let k = 0; k < alternativeNames.length; k++) {
-                        let sumUk = 0;
-                        for (let e = 0; e < numExperts; e++) {
-                          const triK = results?.altTri?.[e]?.[k]?.[j] || [0, 0, 0];
-                          sumUk += triK[2];
-                        }
-                        const avgUk = sumUk / Math.max(1, numExperts);
-                        if (avgUk > maxU) maxU = avgUk;
-                      }
-
-                      const weightTri = (() => {
-                        let sumLw = 0, sumMw = 0, sumUw = 0;
-                        for (let e = 0; e < numExperts; e++) {
-                          const tri = results?.criteriaTri?.[e]?.[j] || [0, 0, 0];
-                          sumLw += tri[0]; sumMw += tri[1]; sumUw += tri[2];
-                        }
-                        const divisor = Math.max(1, criteriaNames.length - 1);
-                        return [sumLw / divisor, sumMw / divisor, sumUw / divisor];
-                      })();
-
-                      const normTri = maxU > 0
-                        ? [avgTri[0] / maxU, avgTri[1] / maxU, avgTri[2] / maxU]
-                        : [0, 0, 0];
-
-                      const weightedTri = [
-                        normTri[0] * weightTri[0],
-                        normTri[1] * weightTri[1],
-                        normTri[2] * weightTri[2],
-                      ];
-
-
-                      weightedTri.forEach(val => {
-                        if (val > fpis) fpis = val;
-                        if (val < fnis) fnis = val;
-                      });
+                      if (U > fpis) fpis = U;
+                      if (L < fnis) fnis = L;
                     });
+
+
+                    results.fpis = results.fpis || [];
+                    results.fnis = results.fnis || [];
+                    results.fpis[j] = fpis;
+                    results.fnis[j] = fnis;
 
                     return (
                       <tr key={j}>
@@ -775,11 +772,11 @@ export default function App() {
           </div>
 
 
+
           <div className="p-4 border rounded mt-6">
-            <h3 className="font-semibold mb-2">Відстані до FPIS та FNIS</h3>
+            <h3 className="font-semibold mb-2">Відстані до DFPIS та DFNIS</h3>
             <p className="text-sm text-slate-500 mb-3">
-              DFPIS — відстань до позитивного ідеального рішення (FPIS);
-              DFNIS — відстань до негативного (FNIS) для кожної альтернативи по кожному критерію.
+              Таблиця показує відстань кожної альтернативи до позитивного (DFPIS) та негативного (DFNIS) ідеального рішення.
             </p>
 
             <div className="overflow-x-auto">
@@ -801,35 +798,23 @@ export default function App() {
                       <td className="p-2 border font-medium text-center">{crit || `C${j + 1}`}</td>
 
                       {alternativeNames.map((_, a) => {
+                        const tri = results.weightedNormalized?.[a]?.[j] || [0, 0, 0];
+                        const [L, M, U] = tri;
 
-                        let sumL = 0, sumM = 0, sumU = 0;
-                        for (let e = 0; e < numExperts; e++) {
-                          const tri = results?.altTri?.[e]?.[a]?.[j] || [0, 0, 0];
-                          sumL += tri[0]; sumM += tri[1]; sumU += tri[2];
-                        }
-
-                        const avgTri = [
-                          sumL / Math.max(1, numExperts),
-                          sumM / Math.max(1, numExperts),
-                          sumU / Math.max(1, numExperts),
-                        ];
-
-
-                        const fpis = results?.fpis?.[j] || [0, 0, 0];
-                        const fnis = results?.fnis?.[j] || [0, 0, 0];
-
+                        const fpis = results.fpis?.[j] ?? 0;
+                        const fnis = results.fnis?.[j] ?? 0;
 
                         const dFPIS = Math.sqrt(
-                          ((avgTri[0] - fpis[0]) ** 2 + (avgTri[1] - fpis[1]) ** 2 + (avgTri[2] - fpis[2]) ** 2) / 3
+                          ((U - fpis) ** 2 + (M - fpis) ** 2 + (L - fpis) ** 2) / 3
                         );
-
                         const dFNIS = Math.sqrt(
-                          ((avgTri[0] - fnis[0]) ** 2 + (avgTri[1] - fnis[1]) ** 2 + (avgTri[2] - fnis[2]) ** 2) / 3
+                          ((U - fnis) ** 2 + (M - fnis) ** 2 + (L - fnis) ** 2) / 3
                         );
 
                         return (
-                          <td key={`d-${j}-${a}`} className="p-2 border text-center font-mono text-xs">
-                            D⁺={dFPIS.toFixed(3)}<br />D⁻={dFNIS.toFixed(3)}
+                          <td key={`dfpis-dfnis-${j}-${a}`} className="p-2 border text-center font-mono text-xs">
+                            D⁺: {dFPIS.toFixed(3)}<br />
+                            D⁻: {dFNIS.toFixed(3)}
                           </td>
                         );
                       })}
@@ -839,6 +824,194 @@ export default function App() {
               </table>
             </div>
           </div>
+
+
+          <div className="p-4 border rounded mt-6">
+            <h3 className="font-semibold mb-2">Суми DFPIS та DFNIS</h3>
+            <p className="text-sm text-slate-500 mb-3">
+              Таблиця показує суму відстаней кожної альтернативи до позитивного (DFPIS) та негативного (DFNIS) ідеального рішення.
+            </p>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full table-auto text-sm border-collapse border">
+                <thead>
+                  <tr>
+                    <th className="p-2 border bg-slate-50 text-center">Альтернатива</th>
+                    {alternativeNames.map((alt, a) => (
+                      <th key={a} className="p-2 border bg-slate-100 text-center">
+                        {alt || `A${a + 1}`}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr className="bg-slate-50 font-semibold">
+                    <td className="p-2 border text-center">Σ D⁺</td>
+                    {alternativeNames.map((_, a) => {
+                      let sumDP = 0;
+
+                      for (let j = 0; j < criteriaNames.length; j++) {
+                        const tri = results.weightedNormalized?.[a]?.[j] || [0, 0, 0];
+                        const [L, M, U] = tri;
+
+                        const fpisVal = results.fpis?.[j] ?? U;
+                        const dFPIS = Math.sqrt(
+                          ((L - fpisVal) ** 2 + (M - fpisVal) ** 2 + (U - fpisVal) ** 2) / 3
+                        );
+
+                        sumDP += dFPIS;
+                      }
+
+                      return (
+                        <td key={`sumDPlus-${a}`} className="p-2 border text-center font-mono">
+                          {sumDP.toFixed(4)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+
+                  <tr className="bg-slate-50 font-semibold">
+                    <td className="p-2 border text-center">Σ D⁻</td>
+                    {alternativeNames.map((_, a) => {
+                      let sumDN = 0;
+
+                      for (let j = 0; j < criteriaNames.length; j++) {
+                        const tri = results.weightedNormalized?.[a]?.[j] || [0, 0, 0];
+                        const [L, M, U] = tri;
+
+                        const fnisVal = results.fnis?.[j] ?? L;
+                        const dFNIS = Math.sqrt(
+                          ((L - fnisVal) ** 2 + (M - fnisVal) ** 2 + (U - fnisVal) ** 2) / 3
+                        );
+
+                        sumDN += dFNIS;
+                      }
+
+                      return (
+                        <td key={`sumDMinus-${a}`} className="p-2 border text-center font-mono">
+                          {sumDN.toFixed(4)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="p-4 border rounded mt-6">
+            <h3 className="font-semibold mb-2">Closeness Coefficient (CC)</h3>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="font-bold">
+                    <td className="p-2 border text-center"></td>
+                    {(() => {
+
+                      const ccList = alternativeNames.map((_, a) => {
+                        let sumDP = 0;
+                        let sumDN = 0;
+
+                        for (let j = 0; j < criteriaNames.length; j++) {
+                          const tri = results.weightedNormalized?.[a]?.[j] || [0, 0, 0];
+                          const [L, M, U] = tri;
+
+                          const fpisVal = results.fpis?.[j] ?? U;
+                          const fnisVal = results.fnis?.[j] ?? L;
+
+                          const dFPIS = Math.sqrt(
+                            ((L - fpisVal) ** 2 + (M - fpisVal) ** 2 + (U - fpisVal) ** 2) / 3
+                          );
+
+                          const dFNIS = Math.sqrt(
+                            ((L - fnisVal) ** 2 + (M - fnisVal) ** 2 + (U - fnisVal) ** 2) / 3
+                          );
+
+                          sumDP += dFPIS;
+                          sumDN += dFNIS;
+                        }
+
+                        const CC = sumDN / (sumDP + sumDN);
+
+                        return {
+                          alt: alternativeNames[a] || `A${a + 1}`,
+                          index: a,
+                          value: CC,
+                        };
+                      });
+
+
+                      return ccList
+                        .sort((a, b) => b.value - a.value)
+                        .map((x) => (
+                          <td key={`head-${x.index}`} className="p-2 border text-center">
+                            {x.alt}
+                          </td>
+                        ));
+                    })()}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr>
+                    <td className="p-2 border text-left font-semibold">
+                      Closeness Coefficient (CC)
+                    </td>
+                    {(() => {
+                      const ccList = alternativeNames.map((_, a) => {
+                        let sumDP = 0;
+                        let sumDN = 0;
+
+                        for (let j = 0; j < criteriaNames.length; j++) {
+                          const tri = results.weightedNormalized?.[a]?.[j] || [0, 0, 0];
+                          const [L, M, U] = tri;
+
+                          const fpisVal = results.fpis?.[j] ?? U;
+                          const fnisVal = results.fnis?.[j] ?? L;
+
+                          const dFPIS = Math.sqrt(
+                            ((L - fpisVal) ** 2 + (M - fpisVal) ** 2 + (U - fpisVal) ** 2) / 3
+                          );
+
+                          const dFNIS = Math.sqrt(
+                            ((L - fnisVal) ** 2 + (M - fnisVal) ** 2 + (U - fnisVal) ** 2) / 3
+                          );
+
+                          sumDP += dFPIS;
+                          sumDN += dFNIS;
+                        }
+
+                        const CC = sumDN / (sumDP + sumDN);
+
+                        return {
+                          alt: alternativeNames[a] || `A${a + 1}`,
+                          index: a,
+                          value: CC,
+                        };
+                      });
+
+                      const sorted = ccList.sort((a, b) => b.value - a.value);
+                      const maxCC = Math.max(...sorted.map((x) => x.value));
+
+                      return sorted.map((x) => (
+                        <td
+                          key={`cc-${x.index}`}
+                          className={`p-2 border text-center font-mono ${x.value === maxCC ? 'bg-green-200 font-bold' : ''
+                            }`}
+                        >
+                          {x.value.toFixed(4)}
+                        </td>
+                      ));
+                    })()}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+
 
 
 
